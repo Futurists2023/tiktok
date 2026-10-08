@@ -109,12 +109,18 @@ export default function Home() {
   if (submitted) {
     return (
       <main className="container">
-        <div className="record-container" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>✅</div>
-          <p className="subtitle">Voice note sent anonymously.</p>
-          <button className="btn btn-secondary" onClick={() => { setSubmitted(false); discardRecording(); }}>
-            Record Another
-          </button>
+        <div className="record-container">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+            <button
+              className="mic-button"
+              style={{ backgroundColor: "transparent", border: "4px solid var(--primary)" }}
+              onClick={() => { setSubmitted(false); discardRecording(); }}
+            >
+              <svg className="mic-icon" style={{ fill: "var(--primary)" }} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </main>
     );
