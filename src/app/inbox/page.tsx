@@ -1,6 +1,6 @@
 import { readdir, stat } from "fs/promises";
 import path from "path";
-export const dynamic = "force-dynamic";
+export const instant = false;
 
 interface VoiceNote {
   filename: string;
