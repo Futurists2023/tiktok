@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,19 +9,28 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No audio file found" }, { status: 400 });
     }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Create data/uploads directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), "data", "uploads");
-    await mkdir(uploadDir, { recursive: true });
     
     // Generate a unique filename using timestamp and random string
     const uniqueId = Math.random().toString(36).substring(2, 9);
     const filename = `${Date.now()}_${uniqueId}.webm`;
-    const filePath = path.join(uploadDir, filename);
     
-    await writeFile(filePath, buffer);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    const { data, error } = await supabase.storage
+      .from("voicenotes")
+      .upload(filename, file, {
+        contentType: 'audio/webm',
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+    if (error) {
+      console.error("Supabase upload error:", error);
+      return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 });
+    }
     
     return NextResponse.json({ success: true, filename });
   } catch (error) {
