@@ -2,13 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
-export async function deleteNotes(filenames: string[], password: string) {
-  const correctPassword = process.env.ADMIN_PASSWORD;
-  
-  if (!correctPassword || password !== correctPassword) {
-    return { error: "Invalid admin password" };
-  }
-
+export async function deleteNotes(filenames: string[]) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -25,7 +19,7 @@ export async function deleteNotes(filenames: string[], password: string) {
     return { error: "Failed to delete files from storage" };
   }
 
-  revalidatePath("/admin");
+  revalidatePath("/ditheto");
   revalidatePath("/inbox");
   
   return { success: true };

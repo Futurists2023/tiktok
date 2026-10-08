@@ -10,10 +10,9 @@ interface VoiceNote {
   url: string;
 }
 
-export default function AdminPage() {
+export default function DithetoPage() {
   const [notes, setNotes] = useState<VoiceNote[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +23,6 @@ export default function AdminPage() {
   async function fetchNotes() {
     setLoading(true);
     
-    // We can list files using the anon key (if public listing is allowed)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -66,20 +64,18 @@ export default function AdminPage() {
 
   const handleDelete = async () => {
     if (selected.size === 0) return;
-    if (!password) return alert("Please enter the admin password");
     
     const confirmDelete = confirm(`Are you sure you want to delete ${selected.size} note(s)?`);
     if (!confirmDelete) return;
 
     setIsDeleting(true);
-    const res = await deleteNotes(Array.from(selected), password);
+    const res = await deleteNotes(Array.from(selected));
     setIsDeleting(false);
     
     if (res.error) {
       alert(res.error);
     } else {
       setSelected(new Set());
-      setPassword("");
       fetchNotes();
     }
   };
@@ -87,29 +83,25 @@ export default function AdminPage() {
   return (
     <main className="container">
       <div style={{ width: "100%" }}>
-        <h1 className="title" style={{ textAlign: "left", marginBottom: "0" }}>Admin Console</h1>
-        <p className="subtitle" style={{ textAlign: "left", marginBottom: "1.5rem" }}>
-          Securely manage and delete voice notes
-        </p>
-
-        <div style={{ marginBottom: "2rem", display: "flex", gap: "1rem" }}>
-          <input
-            type="password"
-            placeholder="Admin Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{
-              flex: 1, padding: "0.8rem", borderRadius: "8px", border: "1px solid var(--surface-border)",
-              background: "var(--surface)", color: "white", outline: "none"
-            }}
-          />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+          <div>
+            <h1 className="title" style={{ textAlign: "left", marginBottom: "0" }}>Voice Notes</h1>
+            <p className="subtitle" style={{ textAlign: "left", margin: 0 }}>
+              Manage & download voice recordings
+            </p>
+          </div>
           <button 
             className="btn btn-primary" 
             onClick={handleDelete} 
             disabled={selected.size === 0 || isDeleting}
-            style={{ flex: 0, padding: "0.8rem 1.5rem", background: selected.size > 0 ? "var(--danger)" : "var(--surface-border)" }}
+            style={{ 
+              padding: "0.8rem 1.5rem", 
+              background: selected.size > 0 ? "var(--danger)" : "var(--surface-border)",
+              opacity: selected.size > 0 && !isDeleting ? 1 : 0.5,
+              cursor: selected.size > 0 && !isDeleting ? "pointer" : "not-allowed"
+            }}
           >
-            {isDeleting ? "..." : `Delete (${selected.size})`}
+            {isDeleting ? "Deleting..." : `Delete (${selected.size})`}
           </button>
         </div>
 
@@ -126,7 +118,7 @@ export default function AdminPage() {
                   onChange={handleSelectAll}
                   style={{ width: "18px", height: "18px", accentColor: "var(--primary)", cursor: "pointer" }}
                 />
-                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Select All</span>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Select All ({notes.length})</span>
             </div>
 
             {notes.map((note) => {
