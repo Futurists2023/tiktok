@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { deleteNotes } from "./actions";
+import { deleteNotes, saveToLocalDir } from "./actions";
 
 interface VoiceNote {
   filename: string;
@@ -14,6 +14,7 @@ export default function DithetoPage() {
   const [notes, setNotes] = useState<VoiceNote[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,6 +63,21 @@ export default function DithetoPage() {
     }
   };
 
+  const handleSaveToLocal = async () => {
+    const filesToSave = selected.size > 0 ? Array.from(selected) : notes.map(n => n.filename);
+    if (filesToSave.length === 0) return;
+
+    setIsSaving(true);
+    const res = await saveToLocalDir(filesToSave);
+    setIsSaving(false);
+
+    if (res.error) {
+      alert(`Error saving to local folder: ${res.error}`);
+    } else {
+      alert(`Successfully downloaded ${res.savedCount} file(s) to B:\\tiktok-ugc`);
+    }
+  };
+
   const handleDelete = async () => {
     if (selected.size === 0) return;
     
@@ -90,19 +106,38 @@ export default function DithetoPage() {
               Manage & download voice recordings
             </p>
           </div>
-          <button 
-            className="btn btn-primary" 
-            onClick={handleDelete} 
-            disabled={selected.size === 0 || isDeleting}
-            style={{ 
-              padding: "0.8rem 1.5rem", 
-              background: selected.size > 0 ? "var(--danger)" : "var(--surface-border)",
-              opacity: selected.size > 0 && !isDeleting ? 1 : 0.5,
-              cursor: selected.size > 0 && !isDeleting ? "pointer" : "not-allowed"
-            }}
-          >
-            {isDeleting ? "Deleting..." : `Delete (${selected.size})`}
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              className="btn"
+              onClick={handleSaveToLocal}
+              disabled={notes.length === 0 || isSaving}
+              style={{
+                padding: "0.8rem 1.2rem",
+                background: "var(--surface-border)",
+                color: "white",
+                opacity: notes.length > 0 && !isSaving ? 1 : 0.5,
+                cursor: notes.length > 0 && !isSaving ? "pointer" : "not-allowed",
+                fontSize: "0.9rem"
+              }}
+            >
+              {isSaving ? "Saving..." : selected.size > 0 ? `Save (${selected.size}) to B:\\tiktok-ugc` : `Save All to B:\\tiktok-ugc`}
+            </button>
+
+            <button 
+              className="btn btn-primary" 
+              onClick={handleDelete} 
+              disabled={selected.size === 0 || isDeleting}
+              style={{ 
+                padding: "0.8rem 1.2rem", 
+                background: selected.size > 0 ? "var(--danger)" : "var(--surface-border)",
+                opacity: selected.size > 0 && !isDeleting ? 1 : 0.5,
+                cursor: selected.size > 0 && !isDeleting ? "pointer" : "not-allowed",
+                fontSize: "0.9rem"
+              }}
+            >
+              {isDeleting ? "Deleting..." : `Delete (${selected.size})`}
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -138,7 +173,7 @@ export default function DithetoPage() {
                     </div>
                     <audio controls src={note.url} style={{ height: "32px", width: "100%", maxWidth: "300px" }} />
                   </div>
-                  <a href={note.url} download className="btn-download" target="_blank" rel="noopener noreferrer" style={{ background: "var(--surface-border)", color: "white", padding: "0.5rem" }}>
+                  <a href={note.url} download={note.filename} className="btn-download" target="_blank" rel="noopener noreferrer" style={{ background: "var(--surface-border)", color: "white", padding: "0.5rem" }} title="Browser Download">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
