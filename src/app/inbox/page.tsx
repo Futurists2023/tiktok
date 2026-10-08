@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
 export const instant = false;
-export const revalidate = 0;
 
 interface VoiceNote {
   filename: string;
