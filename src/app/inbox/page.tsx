@@ -1,6 +1,6 @@
 import { readdir, stat } from "fs/promises";
 import path from "path";
-import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 interface VoiceNote {
   filename: string;
