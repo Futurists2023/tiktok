@@ -30,7 +30,7 @@ async function getVoiceNotes(): Promise<VoiceNote[]> {
       const { data: urlData } = supabase.storage.from("voicenotes").getPublicUrl(file.name);
       return {
         filename: file.name,
-        createdAt: new Date(file.created_at).getTime(),
+        createdAt: file.created_at ? new Date(file.created_at).getTime() : 0,
         size: file.metadata?.size || 0,
         url: urlData.publicUrl,
       };
