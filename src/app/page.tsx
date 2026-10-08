@@ -126,7 +126,7 @@ export default function Home() {
     <main className="container">
       <div className="record-container">
         <div className="glass-panel" style={{ width: "100%" }}>
-          <p className="subtitle">Tap the mic to start. Max 2 minutes.</p>
+
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "2rem" }}>
             {!audioUrl ? (
