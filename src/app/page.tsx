@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 
-const MAX_DURATION = 120; // 2 minutes
+const MAX_DURATION = 180; // 3 minutes
+const WARNING_THRESHOLD = 165; // Warning starts 15 seconds before max limit
 
 export default function Home() {
   const [isRecording, setIsRecording] = useState(false);
@@ -11,6 +12,7 @@ export default function Home() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [hitMaxLimit, setHitMaxLimit] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,6 +36,7 @@ export default function Home() {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      setHitMaxLimit(false);
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -54,6 +57,7 @@ export default function Home() {
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => {
           if (prev >= MAX_DURATION - 1) {
+            setHitMaxLimit(true);
             stopRecording();
             return MAX_DURATION;
           }
@@ -78,6 +82,7 @@ export default function Home() {
     setAudioUrl(null);
     setAudioBlob(null);
     setRecordingTime(0);
+    setHitMaxLimit(false);
   };
 
   const submitRecording = async () => {
@@ -127,6 +132,9 @@ export default function Home() {
     );
   }
 
+  const isWarningPhase = isRecording && recordingTime >= WARNING_THRESHOLD;
+  const secondsLeft = MAX_DURATION - recordingTime;
+
   return (
     <main className="container">
       <div className="record-container">
@@ -137,9 +145,10 @@ export default function Home() {
                 className={`mic-button ${isRecording ? "recording" : ""}`}
                 onClick={isRecording ? stopRecording : startRecording}
                 aria-label={isRecording ? "Stop recording" : "Start recording"}
+                style={isWarningPhase ? { borderColor: "var(--danger)" } : {}}
               >
                 {isRecording ? (
-                  <div style={{ width: "30px", height: "30px", backgroundColor: "var(--primary)", borderRadius: "4px" }}></div>
+                  <div style={{ width: "30px", height: "30px", backgroundColor: isWarningPhase ? "var(--danger)" : "var(--primary)", borderRadius: "4px" }}></div>
                 ) : (
                   <svg className="mic-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
@@ -147,18 +156,36 @@ export default function Home() {
                 )}
               </button>
 
-              <div className="recording-status">
+              <div className="recording-status" style={isWarningPhase ? { color: "var(--danger)" } : {}}>
                 {formatTime(recordingTime)}
               </div>
 
+              {isWarningPhase && (
+                <p style={{ margin: "0.5rem 0 0 0", color: "var(--danger)", fontSize: "0.85rem", fontWeight: 600 }}>
+                  ⚠️ Wrapping up... {secondsLeft}s remaining
+                </p>
+              )}
+
               {isRecording && (
                 <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${(recordingTime / MAX_DURATION) * 100}%` }}></div>
+                  <div 
+                    className="progress-fill" 
+                    style={{ 
+                      width: `${(recordingTime / MAX_DURATION) * 100}%`,
+                      backgroundColor: isWarningPhase ? "var(--danger)" : "var(--primary)"
+                    }}
+                  ></div>
                 </div>
               )}
             </>
           ) : (
             <div style={{ width: "100%" }}>
+              {hitMaxLimit && (
+                <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+                  ⏱️ Maximum 3-minute limit reached
+                </p>
+              )}
+
               <div className="recording-status" style={{ textAlign: "center", marginBottom: "1rem" }}>
                 {formatTime(recordingTime)}
               </div>
