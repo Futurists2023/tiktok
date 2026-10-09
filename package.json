@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync": "node scripts/sync-local.mjs"
+    "sync": "node scripts/sync-local.mjs",
+    "watch": "node scripts/watch-local.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
