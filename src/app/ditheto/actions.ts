@@ -27,7 +27,7 @@ export async function deleteNotes(filenames: string[]) {
   return { success: true };
 }
 
-export async function saveToLocalDir(filenames: string[], targetDir = "B:\\tiktok-ugc") {
+export async function saveToLocalDir(files: { filename: string, createdAt: number }[], targetDir = "B:\\tiktok-ugc") {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -44,16 +44,34 @@ export async function saveToLocalDir(filenames: string[], targetDir = "B:\\tikto
   }
 
   let savedCount = 0;
-  for (const filename of filenames) {
-    const { data, error } = await supabase.storage.from("voicenotes").download(filename);
+  for (const file of files) {
+    const dateObj = new Date(file.createdAt);
+    const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    const dateDir = path.join(/*turbopackIgnore: true*/ targetDir, dateStr);
+
+    try {
+      await fs.mkdir(dateDir, { recursive: true });
+    } catch (err) {
+      // Ignore
+    }
+
+    const filePath = path.join(/*turbopackIgnore: true*/ dateDir, file.filename);
+
+    try {
+      await fs.access(filePath);
+      continue; // File already exists locally, skip
+    } catch {
+      // File missing, proceed with download
+    }
+
+    const { data, error } = await supabase.storage.from("voicenotes").download(file.filename);
     if (error || !data) {
-      console.error(`Error downloading ${filename}:`, error);
+      console.error(`Error downloading ${file.filename}:`, error);
       continue;
     }
 
     const arrayBuffer = await data.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const filePath = path.join(/*turbopackIgnore: true*/ targetDir, filename);
 
     await fs.writeFile(filePath, buffer);
     savedCount++;

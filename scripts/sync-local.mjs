@@ -48,13 +48,21 @@ async function sync() {
 
   let downloaded = 0;
   for (const file of webmFiles) {
-    const localPath = path.join(TARGET_DIR, file.name);
+    const dateObj = file.created_at ? new Date(file.created_at) : new Date();
+    const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    const dateDir = path.join(TARGET_DIR, dateStr);
+
+    try {
+      await fs.mkdir(dateDir, { recursive: true });
+    } catch { }
+
+    const localPath = path.join(dateDir, file.name);
     try {
       await fs.access(localPath);
       // File already exists locally
     } catch {
       // File missing, download
-      process.stdout.write(`Downloading ${file.name}... `);
+      process.stdout.write(`Downloading ${file.name} to ${dateStr}... `);
       const { data, error: dlError } = await supabase.storage.from("voicenotes").download(file.name);
       if (dlError || !data) {
         console.log(`FAILED: ${dlError?.message || "No data"}`);

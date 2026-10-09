@@ -64,17 +64,22 @@ export default function DithetoPage() {
   };
 
   const handleSaveToLocal = async () => {
-    const filesToSave = selected.size > 0 ? Array.from(selected) : notes.map(n => n.filename);
+    const filesToSave = selected.size > 0 
+      ? notes.filter(n => selected.has(n.filename))
+      : notes;
+      
     if (filesToSave.length === 0) return;
 
+    const payload = filesToSave.map(n => ({ filename: n.filename, createdAt: n.createdAt }));
+
     setIsSaving(true);
-    const res = await saveToLocalDir(filesToSave);
+    const res = await saveToLocalDir(payload);
     setIsSaving(false);
 
     if (res.error) {
       alert(`Error saving to local folder: ${res.error}`);
     } else {
-      alert(`Successfully downloaded ${res.savedCount} file(s) to B:\\tiktok-ugc`);
+      alert(`Successfully downloaded ${res.savedCount} new file(s) to date folders in B:\\tiktok-ugc`);
     }
   };
 
