@@ -14,6 +14,12 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [hitMaxLimit, setHitMaxLimit] = useState(false);
 
+  // Custom Player State
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -25,8 +31,9 @@ export default function Home() {
   }, []);
 
   const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return "00:00";
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
+    const s = Math.floor(seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
 
@@ -83,6 +90,8 @@ export default function Home() {
     setAudioBlob(null);
     setRecordingTime(0);
     setHitMaxLimit(false);
+    setIsPlaying(false);
+    setPlaybackTime(0);
   };
 
   const submitRecording = async () => {
@@ -108,6 +117,51 @@ export default function Home() {
       alert("An error occurred during submission.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Custom Player Handlers
+  const togglePlayback = () => {
+    if (!audioPlayerRef.current) return;
+    if (isPlaying) {
+      audioPlayerRef.current.pause();
+    } else {
+      audioPlayerRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioPlayerRef.current) {
+      setPlaybackTime(audioPlayerRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioPlayerRef.current) {
+      // In some browsers, WebM duration might be Infinity until fully loaded/played
+      // But since it's a recorded blob, we can default to recordingTime if duration is funky
+      let duration = audioPlayerRef.current.duration;
+      if (duration === Infinity || isNaN(duration)) {
+        duration = recordingTime;
+      }
+      setAudioDuration(duration);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setPlaybackTime(0);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.currentTime = 0;
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = Number(e.target.value);
+    setPlaybackTime(time);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.currentTime = time;
     }
   };
 
@@ -186,20 +240,55 @@ export default function Home() {
                 </p>
               )}
 
-              <div className="recording-status" style={{ textAlign: "center", marginBottom: "1rem" }}>
-                {formatTime(recordingTime)}
+              {/* Hidden Native Audio Element */}
+              <audio 
+                ref={audioPlayerRef} 
+                src={audioUrl} 
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={handleEnded}
+                style={{ display: "none" }}
+              />
+
+              <div className="custom-audio-player">
+                <div className="player-controls">
+                  <button className="play-pause-btn" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
+                    {isPlaying ? (
+                      <svg className="pause-icon" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                      </svg>
+                    ) : (
+                      <svg className="play-icon" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="scrubber-container">
+                  <span className="time-display">{formatTime(playbackTime)}</span>
+                  <input 
+                    type="range" 
+                    className="scrubber"
+                    min="0"
+                    max={audioDuration || recordingTime || 100}
+                    step="0.01"
+                    value={playbackTime}
+                    onChange={handleSeek}
+                    style={{
+                      background: `linear-gradient(to right, var(--primary) ${(playbackTime / (audioDuration || recordingTime || 1)) * 100}%, var(--surface-border) ${(playbackTime / (audioDuration || recordingTime || 1)) * 100}%)`
+                    }}
+                  />
+                  <span className="time-display">{formatTime(audioDuration || recordingTime)}</span>
+                </div>
               </div>
 
-              <div className="audio-preview">
-                <audio controls src={audioUrl} />
-              </div>
-
-              <div className="actions">
+              <div className="actions" style={{ marginTop: "1.5rem" }}>
                 <button className="btn btn-secondary" onClick={discardRecording} disabled={isSubmitting}>
                   Discard
                 </button>
                 <button className="btn btn-primary" onClick={submitRecording} disabled={isSubmitting}>
-                  {isSubmitting ? "Sending..." : "Send"}
+                  {isSubmitting ? "Sending..." : "Send Voice Note"}
                 </button>
               </div>
             </div>
